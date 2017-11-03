@@ -1,6 +1,6 @@
 var webpack = require('webpack');
 var pkg = require('./package.json');
-var env = process.env.WEBPACK_ENV;
+var env = process.env.WEBPACK_ENV || 'dev';
 var name = 'grapes';
 var plugins = [];
 
