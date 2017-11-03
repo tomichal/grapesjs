@@ -23,7 +23,7 @@ plugins.push(new webpack.ProvidePlugin({
 module.exports = {
   entry: './src',
   output: {
-      filename: './dist/' + name + '.min.js',
+      filename: '../octo/frontend/src/javascripts/tomichal-fork-' + name + '.js',
       library: 'grapesjs',
       libraryTarget: 'umd',
   },

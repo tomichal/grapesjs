@@ -15,7 +15,7 @@ module.exports = Backbone.View.extend({
 
   template: _.template(`
   <% if (hidable) { %>
-    <i id="<%= prefix %>btn-eye" class="btn fa fa-eye <%= (visible ? '' : 'fa-eye-slash') %>" data-toggle-visible></i>
+    <i id="<%= prefix %>btn-eye" class="<%= prefix %>btn fa fa-eye <%= (visible ? '' : 'fa-eye-slash') %>" data-toggle-visible></i>
   <% } %>
 
   <div class="<%= prefix %>title-c">
@@ -193,6 +193,7 @@ module.exports = Backbone.View.extend({
 
     var cCss = _.clone(this.model.get('style')),
     hClass = this.pfx + 'hide';
+    if (typeof(cCss) === 'string' && cCss === '') cCss = {}
     if(this.isVisible()){
       this.$el.addClass(hClass);
       this.$eye.addClass('fa-eye-slash');
