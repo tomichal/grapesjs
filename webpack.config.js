@@ -2,6 +2,7 @@ var HtmlWebpackPlugin = require('html-webpack-plugin');
 var pkg = require('./package.json');
 var webpack = require('webpack');
 var fs = require('fs');
+var env = process.env.WEBPACK_ENV || 'dev'
 var name = 'grapes';
 var plugins = [];
 
@@ -37,17 +38,17 @@ module.exports = {
   plugins: plugins,
   module: {
     loaders: [{
-        test: /grapesjs\/index\.js$/,
-        loader: 'string-replace-loader',
-        query: {
-          search: '<# VERSION #>',
-          replace: pkg.version
-        }
-      },{
-        test: /\.js$/,
-        loader: 'babel-loader',
-        include: /src/,
-        exclude: /node_modules/
+      test: /grapesjs\/index\.js$/,
+      loader: 'string-replace-loader',
+      query: {
+        search: '<# VERSION #>',
+        replace: pkg.version
+      }
+    },{
+      test: /\.js$/,
+      loader: 'babel-loader',
+      include: /src/,
+      exclude: /node_modules/
     }],
   },
   resolve: {
