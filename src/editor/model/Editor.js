@@ -13,11 +13,11 @@ const deps = [
   require('style_manager'),
   require('asset_manager'),
   require('css_composer'),
+  require('trait_manager'),
   require('dom_components'),
   require('canvas'),
   require('commands'),
-  require('block_manager'),
-  require('trait_manager'),
+  require('block_manager')
 ];
 
 const Backbone = require('backbone');
@@ -209,19 +209,6 @@ module.exports = Backbone.Model.extend({
       if (!opt.avoidStore) {
         this.set('changesCount', this.get('changesCount') + 1, opt)
       }
-      /*
-      var count = this.get('changesCount') + 1;
-      var stm = this.get('StorageManager');
-
-      if (!stm.isAutosave() || count < stm.getStepsBeforeSave()) {
-        return;
-      }
-
-      if (!opt.avoidStore) {
-        this.set('changesCount', count)
-        this.store();
-      }
-      */
     }, 0);
   },
 
@@ -296,6 +283,7 @@ module.exports = Backbone.Model.extend({
 
       UndoManager.removeUndoType("change");
       UndoManager.addUndoType("change:style", customUndoType);
+      UndoManager.addUndoType("change:attributes", customUndoType);
       UndoManager.addUndoType("change:content", customUndoType);
     }
   },
@@ -396,7 +384,7 @@ module.exports = Backbone.Model.extend({
   setSelected(el, opts = {}) {
     let model = el;
 
-    if (el instanceof HTMLElement) {
+    if (el instanceof window.HTMLElement) {
       model = $(el).data('model');
     }
 
@@ -582,26 +570,28 @@ module.exports = Backbone.Model.extend({
 
   /**
    * Run default command if setted
+   * @param {Object} [opts={}] Options
    * @private
    */
-  runDefault() {
+  runDefault(opts = {}) {
     var command = this.get('Commands').get(this.config.defaultCommand);
     if(!command || this.defaultRunning)
       return;
-    command.stop(this, this);
-    command.run(this, this);
+    command.stop(this, this, opts);
+    command.run(this, this, opts);
     this.defaultRunning = 1;
   },
 
   /**
    * Stop default command
+   * @param {Object} [opts={}] Options
    * @private
    */
-  stopDefault() {
+  stopDefault(opts = {}) {
     var command = this.get('Commands').get(this.config.defaultCommand);
     if(!command)
       return;
-    command.stop(this, this);
+    command.stop(this, this, opts);
     this.defaultRunning = 0;
   },
 

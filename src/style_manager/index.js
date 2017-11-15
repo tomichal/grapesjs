@@ -10,6 +10,7 @@
  * * [addType](#addtype)
  * * [getType](#gettype)
  * * [getTypes](#gettypes)
+ * * [createType](#createtype)
  * * [render](#render)
  *
  * With Style Manager you basically build categories (called sectors) of CSS properties which could
@@ -69,6 +70,7 @@ module.exports = () => {
      */
     name: 'StyleManager',
 
+
     /**
      * Get configuration object
      * @return {Object}
@@ -77,6 +79,7 @@ module.exports = () => {
     getConfig() {
       return c;
     },
+
 
     /**
      * Initialize module. Automatically called with a new instance of the editor
@@ -94,7 +97,7 @@ module.exports = () => {
         c.stylePrefix = ppfx + c.stylePrefix;
 
       properties = new Properties();
-      sectors = new Sectors(c.sectors);
+      sectors = new Sectors(c.sectors, c);
       SectView   = new SectorsView({
         collection: sectors,
         target: c.em,
@@ -102,6 +105,7 @@ module.exports = () => {
       });
       return this;
     },
+
 
     /**
      * Add new sector to the collection. If the sector with the same id already exists,
@@ -128,6 +132,7 @@ module.exports = () => {
       return result;
     },
 
+
     /**
      * Get sector by id
      * @param {string} id  Sector id
@@ -140,6 +145,7 @@ module.exports = () => {
       return res.length ? res[0] : null;
     },
 
+
     /**
      * Get all sectors
      * @return {Sectors} Collection of sectors
@@ -147,6 +153,7 @@ module.exports = () => {
     getSectors() {
       return sectors;
     },
+
 
     /**
      * Add property to the sector identified by id
@@ -193,6 +200,7 @@ module.exports = () => {
       return prop;
     },
 
+
     /**
      * Get property by its CSS name and sector id
      * @param  {string} sectorId Sector id
@@ -213,6 +221,7 @@ module.exports = () => {
       return prop;
     },
 
+
     /**
      * Get properties of the sector
      * @param  {string} sectorId Sector id
@@ -230,6 +239,7 @@ module.exports = () => {
       return props;
     },
 
+
     /**
      * Get what to style inside Style Manager. If you select the component
      * without classes the entity is the Component itself and all changes will
@@ -239,16 +249,20 @@ module.exports = () => {
      * @return {Model}
      */
     getModelToStyle(model) {
-      var classes = model.get('classes');
+      const classes = model.get('classes');
+      const em = c.em;
 
-      if(c.em && classes && classes.length) {
-        var previewMode = c.em.get('Config').devicePreviewMode;
-        var device = c.em.getDeviceModel();
-        var state = !previewMode ? model.get('state') : '';
-        var deviceW = device && !previewMode ? device.get('width') : '';
-        var cssC = c.em.get('CssComposer');
-        var valid = classes.getStyleable();
-        var CssRule = cssC.get(valid, state, deviceW);
+      if (em && classes && classes.length) {
+        const emConfig = em.get('Config');
+        const previewMode = emConfig.devicePreviewMode;
+        const device = em.getDeviceModel();
+        const state = !previewMode ? model.get('state') : '';
+        const widthMedia = device && device.get('widthMedia');
+        const deviceW = device && !previewMode && widthMedia ?
+          `(${emConfig.mediaCondition}: ${widthMedia})` : '';
+        const cssC = em.get('CssComposer');
+        const valid = classes.getStyleable();
+        const CssRule = cssC.get(valid, state, deviceW);
 
         if(CssRule && valid.length) {
           return CssRule;
@@ -257,6 +271,7 @@ module.exports = () => {
 
       return model;
     },
+
 
     /**
      * Add new property type
@@ -279,6 +294,7 @@ module.exports = () => {
       properties.addType(id, definition);
     },
 
+
     /**
      * Get type
      * @param {string} id Type ID
@@ -288,6 +304,7 @@ module.exports = () => {
       return properties.getType(id);
     },
 
+
     /**
      * Get all types
      * @return {Array}
@@ -295,6 +312,35 @@ module.exports = () => {
     getTypes() {
       return properties.getTypes();
     },
+
+
+    /**
+     * Create new property from type
+     * @param {string} id Type ID
+     * @param  {Object} [options={}] Options
+     * @param  {Object} [options.model={}] Custom model object
+     * @param  {Object} [options.view={}] Custom view object
+     * @return {PropertyView}
+     * @example
+     * const propView = styleManager.createType('integer', {
+     *  model: {units: ['px', 'rem']}
+     * });
+     * propView.render();
+     * propView.model.on('change:value', ...);
+     * someContainer.appendChild(propView.el);
+     */
+    createType(id, {model = {}, view = {}} = {}) {
+      const type = this.getType(id);
+
+      if (type) {
+        return new type.view({
+          model: new type.model(model),
+          config: c,
+          ...view
+        });
+      }
+    },
+
 
     /**
      * Render sectors and properties

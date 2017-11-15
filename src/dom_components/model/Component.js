@@ -34,8 +34,16 @@ module.exports = Backbone.Model.extend(Styleable).extend({
     badgable: true,
 
     // True if it's possible to style it
-    // Tip:  Indicate an array of CSS properties which is possible to style
+    // Tip:
+    // Indicate an array of CSS properties which is possible to style, eg. ['color', 'width']
+    // All other properties will be hidden from the style manager
     stylable: true,
+
+    // Indicate an array of style properties to show up which has been marked as `toRequire`
+    'stylable-require': '',
+
+    // Indicate an array of style properties which should be hidden from the style manager
+    unstylable: '',
 
     // Highlightable with 'dotted' style if true
     highlightable: true,
@@ -138,6 +146,7 @@ module.exports = Backbone.Model.extend(Styleable).extend({
         this.set('void', true);
     }
 
+    opt.em = em;
     this.opt = opt;
     this.sm = em;
     this.em = em;
@@ -384,7 +393,7 @@ module.exports = Backbone.Model.extend(Styleable).extend({
    * @private
    */
   loadTraits(traits, opts = {}) {
-    var trt = new Traits();
+    var trt = new Traits([], this.opt);
     trt.setTarget(this);
     traits = traits || this.get('traits');
 

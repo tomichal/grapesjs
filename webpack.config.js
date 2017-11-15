@@ -1,6 +1,7 @@
-var webpack = require('webpack');
+var HtmlWebpackPlugin = require('html-webpack-plugin');
 var pkg = require('./package.json');
-var env = process.env.WEBPACK_ENV || 'dev';
+var webpack = require('webpack');
+var fs = require('fs');
 var name = 'grapes';
 var plugins = [];
 
@@ -13,6 +14,12 @@ if(env !== 'dev') {
     }),
     new webpack.BannerPlugin(pkg.name + ' - ' + pkg.version),
   ]
+} else {
+  var index = 'index.html';
+  var indexDev = '_' + index;
+  plugins.push(new HtmlWebpackPlugin({
+    template: fs.existsSync(indexDev) ? indexDev : index
+  }));
 }
 
 plugins.push(new webpack.ProvidePlugin({

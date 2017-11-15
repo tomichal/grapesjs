@@ -1,5 +1,5 @@
-import {bindAll} from 'underscore';
-import {on, off} from 'utils/mixins';
+import { bindAll } from 'underscore';
+import { on, off, getUnitFromValue} from 'utils/mixins';
 
 const ToolbarView = require('dom_components/view/ToolbarView');
 const Toolbar = require('dom_components/model/Toolbar');
@@ -340,42 +340,59 @@ module.exports = {
 
     if (editor && resizable) {
       options = {
-        onStart(e, opts) {
+        // Here the resizer is updated with the current element height and width
+        onStart(e, opts = {}) {
+          const { el, config, resizer } = opts;
+          const { keyHeight, keyWidth, currentUnit } = config;
           toggleBodyClass('add', e, opts);
           modelToStyle = em.get('StyleManager').getModelToStyle(model);
+          const computedStyle = getComputedStyle(el);
+          const modelStyle = modelToStyle.getStyle();
+          const currentWidth = modelStyle[keyWidth] || computedStyle[keyWidth];
+          const currentHeight = modelStyle[keyHeight] || computedStyle[keyHeight];
+          resizer.startDim.w = parseFloat(currentWidth);
+          resizer.startDim.h = parseFloat(currentHeight);
           showOffsets = 0;
+
+          if (currentUnit) {
+            config.unitHeight = getUnitFromValue(currentHeight);
+            config.unitWidth = getUnitFromValue(currentWidth);
+          }
         },
+
         // Update all positioned elements (eg. component toolbar)
         onMove() {
           editor.trigger('change:canvasOffset');
         },
+
         onEnd(e, opts) {
           toggleBodyClass('remove', e, opts);
           editor.trigger('change:canvasOffset');
           showOffsets = 1;
         },
+
         updateTarget(el, rect, options = {}) {
           if (!modelToStyle) {
             return;
           }
 
-          const {store, selectedHandler} = options;
+          const { store, selectedHandler, config} = options;
+          const { keyHeight, keyWidth } = config;
           const onlyHeight = ['tc', 'bc'].indexOf(selectedHandler) >= 0;
           const onlyWidth = ['cl', 'cr'].indexOf(selectedHandler) >= 0;
-          const unit = 'px';
           const style = modelToStyle.getStyle();
 
           if (!onlyHeight) {
-            style.width = rect.w + unit;
+            style[keyWidth] = rect.w + config.unitWidth;
           }
 
           if (!onlyWidth) {
-            style.height = rect.h + unit;
+            style[keyHeight] = rect.h + config.unitHeight;
           }
 
           modelToStyle.setStyle(style, {avoidStore: 1});
           const updateEvent = `update:component:style`;
-          em && em.trigger(`${updateEvent}:height ${updateEvent}:width`);
+          em && em.trigger(`${updateEvent}:${keyHeight} ${updateEvent}:${keyWidth}`);
 
           if (store) {
             modelToStyle.trigger('change:style', modelToStyle, style, {});
@@ -538,11 +555,10 @@ module.exports = {
    * @private
    */
   cleanPrevious(model) {
-    if(model)
-      model.set({
-        status: '',
-        state: '',
-      });
+    model && model.set({
+      status: '',
+      state: '',
+    });
   },
 
   /**
@@ -556,20 +572,21 @@ module.exports = {
   run(editor) {
     this.editor = editor && editor.get('Editor');
     this.enable();
+    this.onSelect();
   },
 
-  stop() {
+  stop(editor, sender, opts = {}) {
+    const em = this.em;
     this.stopSelectComponent();
-    this.cleanPrevious(this.em.get('selectedComponent'));
+    !opts.preserveSelected && em.setSelected(null);
     this.clean();
-    this.em.set('selectedComponent', null);
     this.toggleClipboard();
     this.hideBadge();
     this.hideFixedElementOffset();
     this.canvas.getToolbarEl().style.display = 'none';
 
-    this.em.off('component:update', this.updateAttached, this);
-    this.em.off('change:canvasOffset', this.updateAttached, this);
-    this.em.off('change:selectedComponent', this.updateToolbar, this);
+    em.off('component:update', this.updateAttached, this);
+    em.off('change:canvasOffset', this.updateAttached, this);
+    em.off('change:selectedComponent', this.updateToolbar, this);
   }
 };
