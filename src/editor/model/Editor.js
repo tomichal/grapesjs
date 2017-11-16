@@ -2,6 +2,7 @@ import { isUndefined, defaults } from 'underscore';
 
 const deps = [
   require('utils'),
+  require('keymaps'),
   require('storage_manager'),
   require('device_manager'),
   require('parser'),
@@ -47,7 +48,7 @@ module.exports = Backbone.Model.extend({
     device: '',
   },
 
-  initialize(c) {
+  initialize(c = {}) {
     this.config = c;
     this.set('Config', c);
     this.set('modules', []);
@@ -65,6 +66,19 @@ module.exports = Backbone.Model.extend({
     this.on('change:selectedComponent', this.componentSelected, this);
     this.on('change:changesCount', this.updateChanges, this);
   },
+
+
+  /**
+   * Get configurations
+   * @param  {string} [prop] Property name
+   * @return {any} Returns the configuration object or
+   *  the value of the specified property
+   */
+  getConfig(prop) {
+    const config = this.config;
+    return isUndefined(prop) ? config : config[prop];
+  },
+
 
   /**
    * Should be called after all modules and plugins are loaded
@@ -130,30 +144,30 @@ module.exports = Backbone.Model.extend({
    */
   loadModule(moduleName) {
     var c = this.config;
-    var M = new moduleName();
-    var name = M.name.charAt(0).toLowerCase() + M.name.slice(1);
-    var cfg = c[name] || c[M.name] || {};
+    var Mod = new moduleName();
+    var name = Mod.name.charAt(0).toLowerCase() + Mod.name.slice(1);
+    var cfg = c[name] || c[Mod.name] || {};
     cfg.pStylePrefix = c.pStylePrefix || '';
 
     // Check if module is storable
     var sm = this.get('StorageManager');
-    if(M.storageKey && M.store && M.load && sm){
+    if(Mod.storageKey && Mod.store && Mod.load && sm){
       cfg.stm = sm;
       var storables = this.get('storables');
-      storables.push(M);
+      storables.push(Mod);
       this.set('storables', storables);
     }
     cfg.em = this;
-    M.init(Object.create(cfg));
+    Mod.init({ ...cfg });
 
     // Bind the module to the editor model if public
-    if(!M.private)
-      this.set(M.name, M);
+    if(!Mod.private)
+      this.set(Mod.name, Mod);
 
-    if(M.onLoad)
-      this.get('toLoad').push(M);
+    if(Mod.onLoad)
+      this.get('toLoad').push(Mod);
 
-    this.get('modules').push(M);
+    this.get('modules').push(Mod);
     return this;
   },
 
@@ -166,6 +180,12 @@ module.exports = Backbone.Model.extend({
   init(editor) {
     this.set('Editor', editor);
   },
+
+
+  getEditor() {
+    return this.get('Editor');
+  },
+
 
   /**
    * Listen for new rules
@@ -613,6 +633,21 @@ module.exports = Backbone.Model.extend({
     var w = win || window;
     w.getSelection().removeAllRanges();
   },
+
+
+  /**
+   * Get the current media text
+   * @return {string}
+   */
+  getCurrentMedia() {
+    const config = this.config;
+    const device = this.getDeviceModel();
+    const condition = config.mediaCondition;
+    const preview = config.devicePreviewMode;
+    const width = device && device.get('widthMedia');
+    return device && width && !preview ? `(${condition}: ${width})` : '';
+  },
+
 
   /**
    * Set/get data from the HTMLElement
