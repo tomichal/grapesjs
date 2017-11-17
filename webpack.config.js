@@ -11,12 +11,6 @@ if(env !== 'dev') {
     new webpack.optimize.UglifyJsPlugin({ minimize:true, compressor: {warnings:false}}),
     new webpack.BannerPlugin(pkg.name + ' - ' + pkg.version),
   ]
-} else {
-  var index = 'index.html';
-  var indexDev = '_' + index;
-  plugins.push(new HtmlWebpackPlugin({
-    template: fs.existsSync(indexDev) ? indexDev : index
-  }));
 }
 
 plugins.push(new webpack.ProvidePlugin({
@@ -27,7 +21,7 @@ plugins.push(new webpack.ProvidePlugin({
 module.exports = {
   entry: './src',
   output: {
-      filename: '../octo/frontend/src/javascripts/tomichal-fork-' + name + '.js',
+      filename: '../octo/frontend/src/javascripts/tomichal-fork-grapes.js',
       library: 'grapesjs',
       libraryTarget: 'umd',
   },
