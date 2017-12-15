@@ -7,19 +7,20 @@ var formatting = require('codemirror-formatting');
 module.exports = Backbone.Model.extend({
 
   defaults: {
-    input    : '',
-    label    : '',
-    codeName   : '',
-    theme    : '',
-    readOnly   : true,
-    lineNumbers  : true,
+    input: '',
+    label: '',
+    codeName: '',
+    theme: '',
+    readOnly: true,
+    lineNumbers: true,
+    lineWrapping: true
   },
 
   /** @inheritdoc */
   init(el) {
     this.editor  = CodeMirror.fromTextArea(el, {
       dragDrop: false,
-      lineWrapping: true,
+      lineWrapping: this.get('lineWrapping'),
       lineNumbers: this.get('lineNumbers'),
       readOnly: this.get('readOnly'),
       mode: this.get('codeName'),
