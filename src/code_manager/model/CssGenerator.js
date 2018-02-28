@@ -1,7 +1,4 @@
-import { isEmpty } from 'underscore';
-
 module.exports = require('backbone').Model.extend({
-
   initialize() {
     this.compCls = [];
     this.ids = [];
@@ -16,7 +13,7 @@ module.exports = require('backbone').Model.extend({
     let code = '';
     const em = this.em;
     const avoidInline = em && em.getConfig('avoidInlineStyle');
-    const style = model.get('style');
+    const style = model.styleToString();
     const classes = model.get('classes');
     const wrappesIsBody = opts.wrappesIsBody;
     const isWrapper = model.get('wrapper');
@@ -25,57 +22,58 @@ module.exports = require('backbone').Model.extend({
     // Let's know what classes I've found
     classes.each(model => this.compCls.push(model.getFullName()));
 
-    if ((!isEmpty(style) && !avoidInline) || isWrapper) {
+    if ((!avoidInline || isWrapper) && style) {
       let selector = `#${model.getId()}`;
       selector = wrappesIsBody && isWrapper ? 'body' : selector;
-      code = `${selector}{${model.styleToString()}}`;
+      code = `${selector}{${style}}`;
     }
 
     const components = model.components();
-    components.each(model => code += this.buildFromModel(model, opts));
+    components.each(model => (code += this.buildFromModel(model, opts)));
     return code;
   },
 
-
   build(model, opts = {}) {
     const cssc = opts.cssc;
-    this.em = opts.em || '';
+    const em = opts.em || '';
+    this.em = em;
     this.compCls = [];
     this.ids = [];
     var code = this.buildFromModel(model, opts);
 
     if (cssc) {
       const rules = cssc.getAll();
-      const mediaRules = {};
+      const atRules = {};
+      const dump = [];
 
       rules.each(rule => {
-        const media = rule.get('mediaText');
+        const atRule = rule.getAtRule();
 
-        // If media is setted, I'll render it later
-        if (media) {
-          const mRules = mediaRules[media];
+        if (atRule) {
+          const mRules = atRules[atRule];
           if (mRules) {
             mRules.push(rule);
           } else {
-            mediaRules[media] = [rule];
+            atRules[atRule] = [rule];
           }
           return;
         }
 
-        code += this.buildFromRule(rule);
+        code += this.buildFromRule(rule, dump);
       });
 
-      // Get media rules
-      for (let media in mediaRules) {
+      // Get at-rules
+      for (let atRule in atRules) {
         let rulesStr = '';
-        const mRules = mediaRules[media];
-        mRules.forEach(rule => rulesStr += this.buildFromRule(rule));
+        const mRules = atRules[atRule];
+        mRules.forEach(rule => (rulesStr += this.buildFromRule(rule, dump)));
 
         if (rulesStr) {
-          code += `@media ${media}{${rulesStr}}`;
+          code += `${atRule}{${rulesStr}}`;
         }
       }
 
+      em && em.getConfig('clearStyles') && rules.remove(dump);
     }
 
     return code;
@@ -86,10 +84,11 @@ module.exports = require('backbone').Model.extend({
    * @param {Model} rule
    * @return {string} CSS string
    */
-  buildFromRule(rule) {
+  buildFromRule(rule, dump) {
     let result = '';
-    const selectorStr = rule.selectorsToString();
-    const selectorStrNoAdd = rule.selectorsToString({skipAdd: 1});
+    const selectorStrNoAdd = rule.selectorsToString({ skipAdd: 1 });
+    const selectorsAdd = rule.get('selectorsAdd');
+    const singleAtRule = rule.get('singleAtRule');
     let found;
 
     // This will not render a rule if there is no its component
@@ -100,15 +99,13 @@ module.exports = require('backbone').Model.extend({
       }
     });
 
-    if ((selectorStrNoAdd && found) || rule.get('selectorsAdd')) {
-      const style = rule.styleToString();
-
-      if (style) {
-        result += `${selectorStr}{${style}}`;
-      }
+    if ((selectorStrNoAdd && found) || selectorsAdd || singleAtRule) {
+      const block = rule.getDeclaration();
+      block && (result += block);
+    } else {
+      dump.push(rule);
     }
 
     return result;
-  },
-
+  }
 });

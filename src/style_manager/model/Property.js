@@ -1,5 +1,6 @@
-module.exports = require('backbone').Model.extend({
+import { isUndefined } from 'underscore';
 
+module.exports = require('backbone').Model.extend({
   defaults: {
     name: '',
     property: '',
@@ -18,9 +19,8 @@ module.exports = require('backbone').Model.extend({
     // Use case:
     // you can add all SVG CSS properties with toRequire as true
     // and then require them on SVG Components
-    toRequire: 0,
+    toRequire: 0
   },
-
 
   initialize(opt) {
     var o = opt || {};
@@ -28,13 +28,24 @@ module.exports = require('backbone').Model.extend({
     var prop = this.get('property');
 
     if (!name) {
-      this.set('name', prop.charAt(0).toUpperCase() + prop.slice(1).replace(/-/g,' '));
+      this.set(
+        'name',
+        prop.charAt(0).toUpperCase() + prop.slice(1).replace(/-/g, ' ')
+      );
     }
 
     const init = this.init && this.init.bind(this);
     init && init();
   },
 
+  /**
+   * Clear the value
+   * @return {this}
+   */
+  clearValue(opts = {}) {
+    this.set({ value: undefined }, opts);
+    return this;
+  },
 
   /**
    * Update value
@@ -44,7 +55,7 @@ module.exports = require('backbone').Model.extend({
    */
   setValue(value, complete = 1, opts = {}) {
     const parsed = this.parseValue(value);
-    this.set(parsed, { ...opts, avoidStore: 1});
+    this.set(parsed, { ...opts, avoidStore: 1 });
 
     // It's important to set an empty value, otherwise the
     // UndoManager won't see the change
@@ -53,7 +64,6 @@ module.exports = require('backbone').Model.extend({
       this.set(parsed, opts);
     }
   },
-
 
   /**
    * Like `setValue` but, in addition, prevents the update of the input element
@@ -64,9 +74,8 @@ module.exports = require('backbone').Model.extend({
    * @param {Object} [opts={}] Options
    */
   setValueFromInput(value, complete, opts = {}) {
-    this.setValue(value, complete, {...opts, fromInput: 1});
+    this.setValue(value, complete, { ...opts, fromInput: 1 });
   },
-
 
   /**
    * Parse a raw value, generally fetched from the target, for this property
@@ -100,7 +109,6 @@ module.exports = require('backbone').Model.extend({
     return result;
   },
 
-
   /**
    * Get the default value
    * @return {string}
@@ -109,7 +117,6 @@ module.exports = require('backbone').Model.extend({
   getDefaultValue() {
     return this.get('defaults');
   },
-
 
   /**
    * Get a complete value of the property.
@@ -121,13 +128,12 @@ module.exports = require('backbone').Model.extend({
    */
   getFullValue(val) {
     const fn = this.get('functionName');
-    let value = val || this.get('value');
+    let value = isUndefined(val) ? this.get('value') : val;
 
-    if (fn) {
+    if (fn && !isUndefined(value)) {
       value = `${fn}(${value})`;
     }
 
-    return value;
-  },
-
+    return value || '';
+  }
 });

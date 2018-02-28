@@ -12,17 +12,34 @@ import { isString } from 'underscore';
 const keymaster = require('keymaster');
 
 module.exports = () => {
+  let em;
   let config;
-  const configDef = {};
   const keymaps = {};
+  const configDef = {
+    defaults: {
+      'core:undo': {
+        keys: '⌘+z, ctrl+z',
+        handler: 'core:undo'
+      },
+      'core:redo': {
+        keys: '⌘+shift+z, ctrl+shift+z',
+        handler: 'core:redo'
+      },
+      'core:copy': {
+        keys: '⌘+c, ctrl+c',
+        handler: 'core:copy'
+      },
+      'core:paste': {
+        keys: '⌘+v, ctrl+v',
+        handler: 'core:paste'
+      }
+    }
+  };
 
   return {
-
     keymaster,
 
-
     name: 'Keymaps',
-
 
     /**
      * Get module configurations
@@ -32,16 +49,25 @@ module.exports = () => {
       return config;
     },
 
-
     /**
      * Initialize module
      * @param {Object} config Configurations
      * @private
      */
     init(opts = {}) {
-      config = { ...opts, ...configDef };
-      this.em = config.em;
+      config = { ...configDef, ...opts };
+      em = config.em;
+      this.em = em;
       return this;
+    },
+
+    onLoad() {
+      const defKeys = config.defaults;
+
+      for (let id in defKeys) {
+        const value = defKeys[id];
+        this.add(id, value.keys, value.handler);
+      }
     },
 
     /**
@@ -84,7 +110,6 @@ module.exports = () => {
       return keymap;
     },
 
-
     /**
      * Get the keymap by id
      * @param {string} id Keymap id
@@ -97,7 +122,6 @@ module.exports = () => {
       return keymaps[id];
     },
 
-
     /**
      * Get all keymaps
      * @return {Object}
@@ -108,7 +132,6 @@ module.exports = () => {
     getAll() {
       return keymaps;
     },
-
 
     /**
      * Remove the keymap by id
@@ -128,8 +151,6 @@ module.exports = () => {
         em && em.trigger('keymap:remove', keymap);
         return keymap;
       }
-    },
-
-
+    }
   };
 };

@@ -1,6 +1,9 @@
 module.exports = {
-
   stylePrefix: 'trt-',
+
+  // Specify the element to use as a container, string (query) or HTMLElement
+  // With the empty value, nothing will be rendered
+  appendTo: '',
 
   labelContainer: 'Component settings',
 
@@ -15,5 +18,4 @@ module.exports = {
     { value: '', name: 'This window' },
     { value: '_blank', name: 'New window' }
   ]
-
 };

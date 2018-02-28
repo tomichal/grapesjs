@@ -7,16 +7,21 @@
  * ```
  *
  * # Available Events
+ *
  * ## Components
  * * `component:add` - Triggered when a new component is added to the editor, the model is passed as an argument to the callback
- * * `component:update` - Triggered when a component is, generally, updated (moved, styled, etc.)
- * * `component:update:{propertyName}` - Listen any property change
- * * `component:styleUpdate` - Triggered when the style of the component is updated
- * * `component:styleUpdate:{propertyName}` - Listen for a specific style property change
- * * `component:selected` - New component selected
+ * * `component:remove` - Triggered when a component is removed, the model is passed as an argument to the callback
+ * * `component:clone` - Triggered when a new component is added by a clone command, the model is passed as an argument to the callback
+ * * `component:update` - Triggered when a component is updated (moved, styled, etc.), the model is passed as an argument to the callback
+ * * `component:update:{propertyName}` - Listen any property change, the model is passed as an argument to the callback
+ * * `component:styleUpdate` - Triggered when the style of the component is updated, the model is passed as an argument to the callback
+ * * `component:styleUpdate:{propertyName}` - Listen for a specific style property change, the model is passed as an argument to the callback
+ * * `component:selected` - New component selected, the selected model is passed as an argument to the callback
  * ## Blocks
  * * `block:add` - New block added
  * * `block:remove` - Block removed
+ * * `block:drag:start` - Started dragging new block, Event object is passed as an argument
+ * * `block:drag:stop` - Block dropped inside canvas, the new model is passed as an argument to the callback
  * ## Assets
  * * `asset:add` - New asset added
  * * `asset:remove` - Asset removed
@@ -38,6 +43,13 @@
  * * `storage:store` - Triggered when something is stored to the storage, stored object passed as an argumnet
  * * `storage:end` - After the storage request is ended
  * * `storage:error` - On any error on storage request, passes the error as an argument
+ * ## Canvas
+ * * `canvas:dragenter` - When something is dragged inside the canvas, `DataTransfer` instance passed as an argument
+ * * `canvas:dragover` - When something is dragging on canvas, `DataTransfer` instance passed as an argument
+ * * `canvas:drop` - Something is dropped in canvas, `DataTransfer` instance and the dropped model are passed as arguments
+ * * `canvas:dragend` - When a drag operation is ended, `DataTransfer` instance passed as an argument
+ * * `canvas:dragdata` - On any dataTransfer parse, `DataTransfer` instance and the `result` are passed as arguments.
+ *  By changing `result.content` you're able to customize what is dropped
  * ## Selectors
  * * `selector:add` - Triggers when a new selector/class is created
  * ## RTE
@@ -48,6 +60,8 @@
  * * `stop:{commandName}` - Triggered when some command is called to stop (eg. editor.stopCommand('preview'))
  * ## General
  * * `canvasScroll` - Triggered when the canvas is scrolle
+ * * `undo` - Undo executed
+ * * `redo` - Redo executed
  * * `load` - When the editor is loaded
  *
  * @param {Object} config Configurations
@@ -55,7 +69,6 @@
  * @param {string|Array<Object>} [config.components=''] HTML string or object of components
  * @param {string|Array<Object>} [config.style=''] CSS string or object of rules
  * @param {Boolean} [config.fromElement=false] If true, will fetch HTML and CSS from selected container
- * @param {Boolean} [config.copyPaste=true] Enable/Disable the possibility to copy(ctrl + c) & paste(ctrl + v) components
  * @param {Boolean} [config.undoManager=true] Enable/Disable undo manager
  * @param {Boolean} [config.autorender=true] If true renders editor on init
  * @param {Boolean} [config.noticeOnUnload=true] Enable/Disable alert message before unload the page
@@ -81,24 +94,22 @@ import $ from 'cash-dom';
 
 module.exports = config => {
   var c = config || {},
-  defaults = require('./config/config'),
-  EditorModel = require('./model/Editor'),
-  EditorView = require('./view/EditorView');
+    defaults = require('./config/config'),
+    EditorModel = require('./model/Editor'),
+    EditorView = require('./view/EditorView');
 
   for (var name in defaults) {
-    if (!(name in c))
-      c[name] = defaults[name];
+    if (!(name in c)) c[name] = defaults[name];
   }
 
   c.pStylePrefix = c.stylePrefix;
   var em = new EditorModel(c);
   var editorView = new EditorView({
-      model: em,
-      config: c,
+    model: em,
+    config: c
   });
 
   return {
-
     $,
 
     /**
@@ -112,6 +123,12 @@ module.exports = config => {
      * @private
      */
     DomComponents: em.get('DomComponents'),
+
+    /**
+     * @property {LayerManager}
+     * @private
+     */
+    LayerManager: em.get('LayerManager'),
 
     /**
      * @property {CssComposer}
@@ -244,16 +261,17 @@ module.exports = config => {
      * Returns HTML built inside canvas
      * @return {string} HTML string
      */
-    getHtml() {
-      return em.getHtml();
+    getHtml(opts) {
+      return em.getHtml(opts);
     },
 
     /**
      * Returns CSS built inside canvas
+     * @param {Object} [opts={}] Options
      * @return {string} CSS string
      */
-    getCss() {
-      return em.getCss();
+    getCss(opts) {
+      return em.getCss(opts);
     },
 
     /**
@@ -412,7 +430,7 @@ module.exports = config => {
       var result;
       var command = em.get('Commands').get(id);
 
-      if(command){
+      if (command) {
         result = command.run(this, this, options);
         this.trigger('run:' + id);
       }
@@ -431,7 +449,7 @@ module.exports = config => {
       var result;
       var command = em.get('Commands').get(id);
 
-      if(command){
+      if (command) {
         result = command.stop(this, this, options);
         this.trigger('stop:' + id);
       }
@@ -567,6 +585,7 @@ module.exports = config => {
       // Do post render stuff after the iframe is loaded otherwise it'll
       // be empty during tests
       em.on('loaded', () => {
+        this.UndoManager.clear();
         em.get('modules').forEach(module => {
           module.postRender && module.postRender(editorView);
         });
@@ -574,8 +593,6 @@ module.exports = config => {
 
       editorView.render();
       return editorView.el;
-    },
-
+    }
   };
-
 };

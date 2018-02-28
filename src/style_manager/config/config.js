@@ -3,6 +3,10 @@ module.exports = {
 
   sectors: [],
 
+  // Specify the element to use as a container, string (query) or HTMLElement
+  // With the empty value, nothing will be rendered
+  appendTo: '',
+
   // Text to show in case no element selected
   textNoElement: 'Select an element before using Style Manager',
 
@@ -21,8 +25,8 @@ module.exports = {
   showComputed: true,
 
   // Adds the possibility to clear property value from the target style
-  clearProperties: false,
+  clearProperties: 0,
 
   // Properties not to take in account for computed styles
-  avoidComputed: ['width', 'height'],
+  avoidComputed: ['width', 'height']
 };

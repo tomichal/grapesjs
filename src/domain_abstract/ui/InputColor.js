@@ -3,7 +3,6 @@ const Input = require('./Input');
 const $ = Backbone.$;
 
 module.exports = Input.extend({
-
   template() {
     const ppfx = this.ppfx;
     return `
@@ -58,24 +57,32 @@ module.exports = Input.extend({
 
       var colorEl = $(`<div class="${this.ppfx}field-color-picker"></div>`);
       var cpStyle = colorEl.get(0).style;
-      var elToAppend = this.target && this.target.config ? this.target.config.el : '';
+      var elToAppend = this.em && this.em.config ? this.em.config.el : '';
+      var colorPickerConfig =
+        (this.em && this.em.getConfig && this.em.getConfig('colorPicker')) ||
+        {};
       const getColor = color => {
-        let cl = color.getAlpha() == 1 ? color.toHexString() : color.toRgbString();
+        let cl =
+          color.getAlpha() == 1 ? color.toHexString() : color.toRgbString();
         return cl.replace(/ /g, '');
-      }
+      };
 
       let changed = 0;
-      let previousСolor;
+      let previousColor;
       this.$el.find(`[data-colorp-c]`).append(colorEl);
       colorEl.spectrum({
         containerClassName: `${ppfx}one-bg ${ppfx}two-color`,
         appendTo: elToAppend || 'body',
         maxSelectionSize: 8,
         showPalette: true,
-        showAlpha:   true,
+        showAlpha: true,
         chooseText: 'Ok',
         cancelText: '⨯',
         palette: [],
+
+        // config expanded here so that the functions below are not overridden
+        ...colorPickerConfig,
+
         move(color) {
           const cl = getColor(color);
           cpStyle.backgroundColor = cl;
@@ -90,17 +97,17 @@ module.exports = Input.extend({
         },
         show(color) {
           changed = 0;
-          previousСolor = getColor(color);
+          previousColor = getColor(color);
         },
         hide(color) {
-           if (!changed && previousСolor) {
-             if (self.noneColor) {
-               previousСolor = '';
-             }
-             cpStyle.backgroundColor = previousСolor;
-             colorEl.spectrum('set', previousСolor);
-             model.setValueFromInput(previousСolor, 0);
-           }
+          if (!changed && previousColor) {
+            if (self.noneColor) {
+              previousColor = '';
+            }
+            cpStyle.backgroundColor = previousColor;
+            colorEl.spectrum('set', previousColor);
+            model.setValueFromInput(previousColor, 0);
+          }
         }
       });
 
@@ -115,5 +122,4 @@ module.exports = Input.extend({
     this.getColorEl();
     return this;
   }
-
 });

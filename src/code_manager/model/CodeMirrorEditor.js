@@ -5,26 +5,22 @@ var cssMode = require('codemirror/mode/css/css');
 var formatting = require('codemirror-formatting');
 
 module.exports = Backbone.Model.extend({
-
   defaults: {
     input: '',
     label: '',
     codeName: '',
     theme: '',
     readOnly: true,
-    lineNumbers: true,
-    lineWrapping: true
+    lineNumbers: true
   },
 
   /** @inheritdoc */
   init(el) {
-    this.editor  = CodeMirror.fromTextArea(el, {
+    this.editor = CodeMirror.fromTextArea(el, {
       dragDrop: false,
-      lineWrapping: this.get('lineWrapping'),
-      lineNumbers: this.get('lineNumbers'),
-      readOnly: this.get('readOnly'),
+      lineWrapping: true,
       mode: this.get('codeName'),
-      theme: this.get('theme'),
+      ...this.attributes
     });
 
     return this;
@@ -32,14 +28,15 @@ module.exports = Backbone.Model.extend({
 
   /** @inheritdoc */
   setContent(v) {
-    if(!this.editor)
-      return;
+    if (!this.editor) return;
     this.editor.setValue(v);
-    if(this.editor.autoFormatRange){
+    if (this.editor.autoFormatRange) {
       CodeMirror.commands.selectAll(this.editor);
-      this.editor.autoFormatRange(this.editor.getCursor(true), this.editor.getCursor(false) );
+      this.editor.autoFormatRange(
+        this.editor.getCursor(true),
+        this.editor.getCursor(false)
+      );
       CodeMirror.commands.goDocStart(this.editor);
     }
-  },
-
+  }
 });

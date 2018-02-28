@@ -1,11 +1,10 @@
-import {on, off} from 'utils/mixins'
+import { on, off } from 'utils/mixins';
 
 const ComponentView = require('./ComponentView');
 
 module.exports = ComponentView.extend({
-
   events: {
-    'dblclick': 'enableEditing',
+    dblclick: 'enableEditing'
   },
 
   initialize(o) {
@@ -60,14 +59,14 @@ module.exports = ComponentView.extend({
       const content = this.getChildrenContainer().innerHTML;
       const comps = model.get('components');
       comps.length && comps.reset();
+      model.set('content', '');
 
       // If there is a custom RTE the content is just baked staticly
       // inside 'content'
       if (rte.customRte) {
         // Avoid double content by removing its children components
         // and force to trigger change
-        model.set('content', '')
-        .set('content', content);
+        model.set('content', content);
       } else {
         const clean = model => {
           model.set({
@@ -76,13 +75,13 @@ module.exports = ComponentView.extend({
             removable: 0,
             draggable: 0,
             copyable: 0,
-            toolbar: '',
-          })
+            toolbar: ''
+          });
           model.get('components').each(model => clean(model));
-        }
+        };
 
         // Avoid re-render on reset with silent option
-        model.set('content', '');
+        model.trigger('change:content', model);
         comps.add(content);
         comps.each(model => clean(model));
         comps.trigger('resetNavigator');
@@ -108,7 +107,7 @@ module.exports = ComponentView.extend({
    */
   toggleEvents(enable) {
     var method = enable ? 'on' : 'off';
-    const mixins = {on, off};
+    const mixins = { on, off };
 
     // The ownerDocument is from the frame
     var elDocs = [this.el.ownerDocument, document];
@@ -118,6 +117,5 @@ module.exports = ComponentView.extend({
     // Avoid closing edit mode on component click
     this.$el.off('mousedown', this.disablePropagation);
     this.$el[method]('mousedown', this.disablePropagation);
-  },
-
+  }
 });

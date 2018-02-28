@@ -1,7 +1,11 @@
 import { omit, keys, isUndefined } from 'underscore';
 
 const elProt = window.Element.prototype;
-const matches = elProt.matches || elProt.webkitMatchesSelector || elProt.mozMatchesSelector || elProt.msMatchesSelector;
+const matches =
+  elProt.matches ||
+  elProt.webkitMatchesSelector ||
+  elProt.mozMatchesSelector ||
+  elProt.msMatchesSelector;
 
 /**
  * Returns shallow diff between 2 objects
@@ -44,7 +48,6 @@ const shallowDiff = (objOrig, objNew) => {
   return result;
 };
 
-
 const on = (el, ev, fn) => {
   ev = ev.split(/\s+/);
   el = el instanceof Array ? el : [el];
@@ -52,8 +55,7 @@ const on = (el, ev, fn) => {
   for (let i = 0; i < ev.length; ++i) {
     el.forEach(elem => elem.addEventListener(ev[i], fn));
   }
-}
-
+};
 
 const off = (el, ev, fn) => {
   ev = ev.split(/\s+/);
@@ -62,29 +64,47 @@ const off = (el, ev, fn) => {
   for (let i = 0; i < ev.length; ++i) {
     el.forEach(elem => elem.removeEventListener(ev[i], fn));
   }
-}
+};
 
-
-const getUnitFromValue = (value) => {
+const getUnitFromValue = value => {
   return value.replace(parseFloat(value), '');
-}
-
+};
 
 const upFirst = value => value[0].toUpperCase() + value.toLowerCase().slice(1);
-
 
 const camelCase = value => {
   const values = value.split('-');
   return values[0].toLowerCase() + values.slice(1).map(upFirst);
-}
+};
 
+const normalizeFloat = (value, step = 1, valueDef = 0) => {
+  let stepDecimals = 0;
+  if (isNaN(value)) return valueDef;
+  value = parseFloat(value);
+
+  if (Math.floor(value) !== value) {
+    const side = step.toString().split('.')[1];
+    stepDecimals = side ? side.length : 0;
+  }
+
+  return stepDecimals ? parseFloat(value.toFixed(stepDecimals)) : value;
+};
+
+const hasDnd = em => {
+  return (
+    'draggable' in document.createElement('i') &&
+    (em ? em.get('Config').nativeDnD : 1)
+  );
+};
 
 export {
   on,
   off,
+  hasDnd,
   upFirst,
   matches,
   camelCase,
   shallowDiff,
+  normalizeFloat,
   getUnitFromValue
-}
+};

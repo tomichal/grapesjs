@@ -1,24 +1,38 @@
+import { isUndefined, clone } from 'underscore';
+
+const Backbone = require('backbone');
 const $ = Backbone.$;
 
 module.exports = Backbone.View.extend({
+  events: {
+    change: 'onChange'
+  },
 
-  events:{
-    'change': 'onChange'
+  attributes() {
+    return this.model.get('attributes');
   },
 
   initialize(o) {
-    var md = this.model;
+    const model = this.model;
+    const name = model.get('name');
+    const target = model.target;
     this.config = o.config || {};
     this.pfx = this.config.stylePrefix || '';
     this.ppfx = this.config.pStylePrefix || '';
-    this.target = md.target;
+    this.target = target;
     this.className = this.pfx + 'trait';
     this.labelClass = this.ppfx + 'label';
-    this.fieldClass = this.ppfx + 'field ' + this.ppfx + 'field-' + md.get('type');
+    this.fieldClass =
+      this.ppfx + 'field ' + this.ppfx + 'field-' + model.get('type');
     this.inputhClass = this.ppfx + 'input-holder';
-    md.off('change:value', this.onValueChange);
-    this.listenTo(md, 'change:value', this.onValueChange);
-    this.tmpl = '<div class="' + this.fieldClass +'"><div class="' + this.inputhClass +'"></div></div>';
+    model.off('change:value', this.onValueChange);
+    this.listenTo(model, 'change:value', this.onValueChange);
+    this.tmpl =
+      '<div class="' +
+      this.fieldClass +
+      '"><div class="' +
+      this.inputhClass +
+      '"></div></div>';
   },
 
   /**
@@ -33,22 +47,24 @@ module.exports = Backbone.View.extend({
     return this.model.get('value');
   },
 
+  setInputValue(value) {
+    this.getInputEl().value = value;
+  },
+
   /**
    * On change callback
    * @private
    */
-  onValueChange() {
-    var m = this.model;
-    var trg = this.target;
-    var name = m.get('name');
-    var value = this.getValueForTarget();
-    // Chabge property if requested otherwise attributes
-    if(m.get('changeProp')){
-      trg.set(name, value);
-    }else{
-      var attrs = _.clone(trg.get('attributes'));
-      attrs[name] = value;
-      trg.set('attributes', attrs);
+  onValueChange(model, value, opts = {}) {
+    const mod = this.model;
+    const trg = this.target;
+    const name = mod.get('name');
+
+    if (opts.fromTarget) {
+      this.setInputValue(mod.get('value'));
+    } else {
+      const value = this.getValueForTarget();
+      mod.setTargetValue(value);
     }
   },
 
@@ -57,7 +73,9 @@ module.exports = Backbone.View.extend({
    * @private
    */
   renderLabel() {
-    this.$el.html('<div class="' + this.labelClass + '">' + this.getLabel() + '</div>');
+    this.$el.html(
+      '<div class="' + this.labelClass + '">' + this.getLabel() + '</div>'
+    );
   },
 
   /**
@@ -68,7 +86,7 @@ module.exports = Backbone.View.extend({
   getLabel() {
     var model = this.model;
     var label = model.get('label') || model.get('name');
-    return label.charAt(0).toUpperCase() + label.slice(1).replace(/-/g,' ');
+    return label.charAt(0).toUpperCase() + label.slice(1).replace(/-/g, ' ');
   },
 
   /**
@@ -77,7 +95,7 @@ module.exports = Backbone.View.extend({
    * @private
    */
   getInputEl() {
-    if(!this.$input) {
+    if (!this.$input) {
       var md = this.model;
       var trg = this.target;
       var name = md.get('name');
@@ -86,8 +104,9 @@ module.exports = Backbone.View.extend({
       const attrs = trg.get('attributes');
       const min = md.get('min');
       const max = md.get('max');
-      const value = md.get('changeProp') ?
-        trg.get(name) : md.get('value') || attrs[name];
+      const value = md.get('changeProp')
+        ? trg.get(name)
+        : md.get('value') || attrs[name];
       const input = $(`<input type="${type}" placeholder="${plh}">`);
 
       if (value) {
@@ -128,7 +147,7 @@ module.exports = Backbone.View.extend({
    * @private
    * */
   renderField() {
-    if(!this.$input){
+    if (!this.$input) {
       this.$el.append(this.tmpl);
       const el = this.getInputEl();
       // I use prepand expecially for checkbox traits
@@ -142,6 +161,5 @@ module.exports = Backbone.View.extend({
     this.renderField();
     this.el.className = this.className;
     return this;
-  },
-
+  }
 });

@@ -1,14 +1,17 @@
-var Backbone = require('backbone');
-var CssRuleView = require('./CssRuleView');
+const CssRuleView = require('./CssRuleView');
+const CssGroupRuleView = require('./CssGroupRuleView');
 
-module.exports = Backbone.View.extend({
-
+module.exports = require('backbone').View.extend({
   initialize(o) {
-    this.config = o.config || {};
-    this.pfx = this.config.stylePrefix || '';
+    const config = o.config || {};
+    this.atRules = {};
+    this.config = config;
+    this.em = config.em;
+    this.pfx = config.stylePrefix || '';
     this.className = this.pfx + 'rules';
-    this.listenTo( this.collection, 'add', this.addTo );
-    this.listenTo( this.collection, 'reset', this.render );
+    const coll = this.collection;
+    this.listenTo(coll, 'add', this.addTo);
+    this.listenTo(coll, 'reset', this.render);
   },
 
   /**
@@ -17,7 +20,6 @@ module.exports = Backbone.View.extend({
    * @private
    * */
   addTo(model) {
-    //console.log('Added');
     this.addToCollection(model);
   },
 
@@ -29,33 +31,52 @@ module.exports = Backbone.View.extend({
    * @private
    * */
   addToCollection(model, fragmentEl) {
-    var fragment  = fragmentEl || null;
-    var viewObject  = CssRuleView;
+    var fragment = fragmentEl || null;
+    var viewObject = CssRuleView;
+    var config = this.config;
+    let rendered, view;
+    const opts = { model, config };
 
-    var view = new viewObject({
-        model,
-        config: this.config,
-    });
-    var rendered  = view.render().el;
+    // I have to render keyframes of the same name together
+    // Unfortunately at the moment I didn't find the way of appending them
+    // if not staticly, via appendData
+    if (model.get('atRuleType') == 'keyframes') {
+      const atRule = model.getAtRule();
+      let atRuleEl = this.atRules[atRule];
 
-    if(fragment)
-      fragment.appendChild( rendered );
-    else
-      this.$el.append(rendered);
+      if (!atRuleEl) {
+        const styleEl = document.createElement('style');
+        atRuleEl = document.createTextNode('');
+        styleEl.appendChild(document.createTextNode(`${atRule}{`));
+        styleEl.appendChild(atRuleEl);
+        styleEl.appendChild(document.createTextNode(`}`));
+        this.atRules[atRule] = atRuleEl;
+        rendered = styleEl;
+      }
+
+      view = new CssGroupRuleView(opts);
+      atRuleEl.appendData(view.render().el.textContent);
+    } else {
+      view = new CssRuleView(opts);
+      rendered = view.render().el;
+    }
+
+    if (rendered) {
+      if (fragment) fragment.appendChild(rendered);
+      else this.$el.append(rendered);
+    }
 
     return rendered;
   },
 
   render() {
-    var fragment = document.createDocumentFragment();
-    this.$el.empty();
-
-    this.collection.each(function(model){
-      this.addToCollection(model, fragment);
-    }, this);
-
-    this.$el.append(fragment);
-    this.$el.attr('class', this.className);
+    this.atRules = {};
+    const $el = this.$el;
+    const frag = document.createDocumentFragment();
+    $el.empty();
+    this.collection.each(model => this.addToCollection(model, frag));
+    $el.append(frag);
+    $el.attr('class', this.className);
     return this;
   }
 });
