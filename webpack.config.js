@@ -26,7 +26,7 @@ module.exports = env => {
     const index = 'index.html';
     const indexDev = `_${index}`;
     const template = fs.existsSync(indexDev) ? indexDev : index;
-    plugins.push(new HtmlWebpackPlugin({ template }));
+    plugins.push(new HtmlWebpackPlugin({ template, inject: false }));
   }
 
   plugins.push(new webpack.ProvidePlugin({
