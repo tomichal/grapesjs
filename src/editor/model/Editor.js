@@ -52,6 +52,7 @@ module.exports = Backbone.Model.extend({
     this.set('Config', c);
     this.set('modules', []);
     this.set('toLoad', []);
+    this.set('storables', []);
 
     if (c.el && c.fromElement) this.config.components = c.el.innerHTML;
 
@@ -93,7 +94,7 @@ module.exports = Backbone.Model.extend({
       clb && clb();
     };
 
-    if (sm && sm.getConfig().autoload) {
+    if (sm && sm.canAutoload()) {
       this.load(postLoad);
     } else {
       postLoad();
@@ -196,13 +197,10 @@ module.exports = Backbone.Model.extend({
    * @param   {Object}   Options
    * @private
    * */
-  componentSelected(model, val, options) {
-    if (!this.get('selectedComponent')) {
-      this.trigger('deselect-comp');
-    } else {
-      this.trigger('select-comp', [model, val, options]);
-      this.trigger('component:selected', arguments);
-    }
+  componentSelected(editor, selected, options) {
+    const prev = this.previous('selectedComponent');
+    prev && this.trigger('component:deselected', prev, options);
+    selected && this.trigger('component:selected', selected, options);
   },
 
   /**
@@ -304,6 +302,9 @@ module.exports = Backbone.Model.extend({
     const config = this.config;
     const wrappesIsBody = config.wrappesIsBody;
     const avoidProt = opts.avoidProtected;
+    const keepUnusedStyles = !isUndefined(opts.keepUnusedStyles)
+      ? opts.keepUnusedStyles
+      : config.keepUnusedStyles;
     const cssc = this.get('CssComposer');
     const wrp = this.get('DomComponents').getComponent();
     const protCss = !avoidProt ? config.protectedCss : '';
@@ -312,7 +313,8 @@ module.exports = Backbone.Model.extend({
       protCss +
       this.get('CodeManager').getCode(wrp, 'css', {
         cssc,
-        wrappesIsBody
+        wrappesIsBody,
+        keepUnusedStyles
       })
     );
   },
@@ -346,7 +348,7 @@ module.exports = Backbone.Model.extend({
       for (var el in obj) store[el] = obj[el];
     });
 
-    sm.store(store, (res) => {
+    sm.store(store, res => {
       clb && clb(res);
       this.set('changesCount', 0);
       this.trigger('storage:store', store);
@@ -394,7 +396,7 @@ module.exports = Backbone.Model.extend({
     sm.load(load, res => {
       this.cacheLoad = res;
       clb && clb(res);
-      this.trigger('storage:load', res);
+      setTimeout(() => this.trigger('storage:load', res), 0);
     });
   },
 
